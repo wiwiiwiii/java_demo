@@ -1,28 +1,35 @@
 package com.example.account;
 
+import com.example.account.domain.AccountStatus;
+import com.example.account.exception.ValidationException;
+import com.example.account.policy.AccountStatusPolicy;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AccountTest {
     @Test
     void positiveBalanceIsActive() {
-        Account account = new Account("A001", "张三", 1000.0);
-
-        assertEquals("active", account.getStatus());
+        assertEquals(AccountStatus.ACTIVE, new Account("A001", "Alice", 1.0).getStatus());
     }
 
     @Test
     void zeroBalanceIsInactive() {
-        Account account = new Account("A002", "李四", 0.0);
-
-        assertEquals("inactive", account.getStatus());
+        assertEquals(AccountStatus.INACTIVE, new Account("A002", "Bob", 0.0).getStatus());
     }
 
     @Test
-    void negativeBalanceIsInactive() {
-        Account account = new Account("A003", "王五", -10.0);
+    void negativeAndNonFiniteBalancesAreRejected() {
+        assertThrows(ValidationException.class, () -> new Account("A003", "Cara", -0.01));
+        assertThrows(ValidationException.class, () -> new Account("A004", "Dan", Double.NaN));
+    }
 
-        assertEquals("inactive", account.getStatus());
+    @Test
+    void injectedPolicyCanChangeStatusWithoutChangingAccount() {
+        AccountStatusPolicy alwaysInactive = balance -> AccountStatus.INACTIVE;
+
+        assertEquals(AccountStatus.INACTIVE,
+                new Account("A005", "Eve", 100.0, alwaysInactive).getStatus());
     }
 }
