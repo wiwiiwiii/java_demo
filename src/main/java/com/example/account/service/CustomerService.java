@@ -6,10 +6,14 @@ import com.example.account.customer.CustomerFactory;
 import com.example.account.domain.CustomerType;
 import com.example.account.domain.UserRole;
 import com.example.account.exception.AuthorizationException;
+import com.example.account.exception.ValidationException;
 import com.example.account.repository.ArrayCustomerRepository;
 import com.example.account.security.UserSession;
 
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class CustomerService {
     private final ArrayCustomerRepository repository;
@@ -23,6 +27,32 @@ public final class CustomerService {
     public Customer[] listAll(UserSession session) {
         requireAdmin(session);
         return repository.findAll();
+    }
+
+    public Customer[] search(UserSession session, String query) {
+        requireAdmin(session);
+        if (query == null || query.isBlank()) {
+            throw new ValidationException("Search query must not be blank");
+        }
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        return Arrays.stream(repository.findAll())
+                .filter(customer -> customer.getCustomerId().toLowerCase(Locale.ROOT)
+                                .contains(normalizedQuery)
+                        || customer.getName().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                        || customer.getUsername().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                        || customer.getAccount().getId().toLowerCase(Locale.ROOT)
+                                .contains(normalizedQuery))
+                .toArray(Customer[]::new);
+    }
+
+    public Customer[] filter(UserSession session, Predicate<Customer> predicate) {
+        requireAdmin(session);
+        if (predicate == null) {
+            throw new ValidationException("Customer predicate must not be null");
+        }
+        return Arrays.stream(repository.findAll())
+                .filter(predicate)
+                .toArray(Customer[]::new);
     }
 
     public Customer addCustomer(UserSession session, CustomerType type, String customerId,

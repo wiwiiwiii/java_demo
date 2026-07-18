@@ -3,6 +3,7 @@ package com.example.account.service;
 import com.example.account.Account;
 import com.example.account.customer.Customer;
 import com.example.account.customer.CustomerFactory;
+import com.example.account.domain.AccountStatus;
 import com.example.account.domain.CustomerType;
 import com.example.account.exception.AuthorizationException;
 import com.example.account.exception.CustomerNotFoundException;
@@ -11,6 +12,8 @@ import com.example.account.repository.ArrayCustomerRepository;
 import com.example.account.security.UserSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -117,6 +120,96 @@ class CustomerServiceTest {
 
         assertThrows(CustomerNotFoundException.class,
                 () -> service.getOwnAccount(aliceSession));
+    }
+
+    @Test
+    void administratorCanSearchEveryCustomerIdentityFieldCaseInsensitively() {
+        Customer premium = addPremiumCustomer();
+
+        assertSame(premium, service.search(admin, "c002")[0]);
+        assertSame(premium, service.search(admin, "PREMIUM CUSTOMER")[0]);
+        assertSame(premium, service.search(admin, "BOB.PREMIUM")[0]);
+        assertSame(premium, service.search(admin, "a102")[0]);
+    }
+
+    @Test
+    void searchReturnsEveryMatchAndAnEmptyArrayWhenNothingMatches() {
+        addPremiumCustomer();
+
+        assertEquals(2, service.search(admin, "a10").length);
+        assertEquals(0, service.search(admin, "missing").length);
+    }
+
+    @Test
+    void searchRejectsNullAndBlankQueries() {
+        assertThrows(ValidationException.class, () -> service.search(admin, null));
+        assertThrows(ValidationException.class, () -> service.search(admin, "  \t"));
+    }
+
+    @Test
+    void administratorCanFilterCustomersWithLambdas() {
+        Customer premium = addPremiumCustomer();
+
+        Customer[] byType = service.filter(admin,
+                customer -> customer.getType() == CustomerType.PREMIUM);
+        Customer[] byStatus = service.filter(admin,
+                customer -> customer.getAccount().getStatus() == AccountStatus.ACTIVE);
+        Customer[] byMinimumBalance = service.filter(admin,
+                customer -> customer.getAccount().getBalance() >= 10_000);
+
+        assertEquals(1, byType.length);
+        assertSame(premium, byType[0]);
+        assertEquals(2, byStatus.length);
+        assertEquals(1, byMinimumBalance.length);
+        assertSame(premium, byMinimumBalance[0]);
+    }
+
+    @Test
+    void administratorCanComposeCustomerPredicatesWithAnd() {
+        Customer premium = addPremiumCustomer();
+        Predicate<Customer> premiumType =
+                customer -> customer.getType() == CustomerType.PREMIUM;
+        Predicate<Customer> active =
+                customer -> customer.getAccount().getStatus() == AccountStatus.ACTIVE;
+        Predicate<Customer> minimumBalance =
+                customer -> customer.getAccount().getBalance() >= 10_000;
+
+        Customer[] matches = service.filter(admin,
+                premiumType.and(active).and(minimumBalance));
+
+        assertEquals(1, matches.length);
+        assertSame(premium, matches[0]);
+    }
+
+    @Test
+    void filterReturnsAnEmptyArrayAndRejectsNullPredicates() {
+        assertEquals(0, service.filter(admin, customer -> false).length);
+        assertThrows(ValidationException.class, () -> service.filter(admin, null));
+    }
+
+    @Test
+    void searchAndFilterRejectCustomerAndFabricatedSessionsBeforeEvaluatingInputs() {
+        UserSession fabricatedAdmin = UserSession.admin("admin");
+        Predicate<Customer> probingPredicate = customer -> {
+            throw new AssertionError("predicate must not be evaluated");
+        };
+
+        assertThrows(AuthorizationException.class,
+                () -> service.search(aliceSession, null));
+        assertThrows(AuthorizationException.class,
+                () -> service.filter(aliceSession, probingPredicate));
+        assertThrows(AuthorizationException.class,
+                () -> service.search(fabricatedAdmin, null));
+        assertThrows(AuthorizationException.class,
+                () -> service.filter(fabricatedAdmin, probingPredicate));
+    }
+
+    private Customer addPremiumCustomer() {
+        Customer premium = CustomerFactory.create(CustomerType.PREMIUM, "C002",
+                "Premium Customer", "bob.premium", "secret2".toCharArray(),
+                "A102", 15_000);
+        repository.save(premium);
+        return premium;
     }
 
     private static Customer customer(String id, String username, String account) {

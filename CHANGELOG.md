@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added stateless administrator and customer credential verification with immutable user sessions and indistinguishable credential failures.
 - Added an externally composed active-session registry shared by authentication and authorization services.
 - Added role-based customer services for administrator management operations and customer self-service account access.
+- Added flexible administrator customer search and Lambda/Stream audit filtering.
 
 ### Changed
 
