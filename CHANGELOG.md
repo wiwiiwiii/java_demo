@@ -24,4 +24,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Updated account status reporting to use enum values instead of hard-coded strings.
 - Excluded customer passwords from public APIs and string representations.
 - Hardened role authorization with active-session provenance, logout invalidation, reserved administrator usernames, and temporary credential-buffer wiping.
+- Recover invalidated console sessions by returning safely to the guest menu without retry loops.
 - Removed internal planning documents from the deliverable.

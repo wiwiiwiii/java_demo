@@ -3,10 +3,14 @@ package com.example.account.console;
 import com.example.account.customer.CustomerFactory;
 import com.example.account.domain.CustomerType;
 import com.example.account.repository.ArrayCustomerRepository;
+import com.example.account.security.UserSession;
 import com.example.account.service.AuthenticationService;
 import com.example.account.service.CustomerService;
 import com.example.account.service.SessionRegistry;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -24,6 +28,7 @@ class ConsoleControllerTest {
         assertTrue(fixture.io.output().contains("Invalid username or password"));
         assertTrue(occurrences(fixture.io.output(), "Guest Menu") >= 3);
         assertEquals(1, fixture.io.passwordReads());
+        assertTrue(fixture.io.passwordBuffersAreCleared());
         assertFalse(fixture.io.output().contains("wrong-password"));
     }
 
@@ -37,6 +42,7 @@ class ConsoleControllerTest {
         assertTrue(fixture.io.output().contains("Invalid option"));
         assertTrue(fixture.io.output().contains("Logged out"));
         assertFalse(fixture.io.output().contains("Admin123"));
+        assertTrue(fixture.io.passwordBuffersAreCleared());
     }
 
     @Test
@@ -50,6 +56,7 @@ class ConsoleControllerTest {
         assertTrue(fixture.io.output().contains("Invalid option"));
         assertFalse(fixture.io.output().contains("List all customers"));
         assertFalse(fixture.io.output().contains("secret1"));
+        assertTrue(fixture.io.passwordBuffersAreCleared());
     }
 
     @Test
@@ -67,6 +74,7 @@ class ConsoleControllerTest {
         assertTrue(fixture.io.output().contains("Registration successful"));
         assertTrue(fixture.io.output().contains("Customer Menu"));
         assertEquals(3, fixture.io.passwordReads());
+        assertTrue(fixture.io.passwordBuffersAreCleared());
         assertFalse(fixture.io.output().contains("secret2"));
         assertEquals(2, fixture.repository.size());
     }
@@ -151,23 +159,50 @@ class ConsoleControllerTest {
         assertTrue(eof.io.output().contains("Input closed"));
     }
 
+    @Test
+    void revokedCustomerSessionReportsOnceAndReturnsToGuestMenu() {
+        Fixture fixture = fixture("1", "alice", "secret1", "3");
+        AtomicInteger authorizationErrors = new AtomicInteger();
+        AtomicBoolean revoked = new AtomicBoolean();
+        fixture.io.onPrint(text -> {
+            if ("Customer Menu".equals(text) && revoked.compareAndSet(false, true)) {
+                UserSession admin = fixture.authentication.login(
+                        "admin", "Admin123".toCharArray());
+                fixture.customers.deleteCustomer(admin, "C001");
+            }
+            if (text.contains("Customer access required")
+                    && authorizationErrors.incrementAndGet() > 1) {
+                throw new AssertionError("controller retried a revoked session");
+            }
+        });
+
+        fixture.controller.run();
+
+        assertEquals(1, authorizationErrors.get());
+        assertTrue(fixture.io.output().contains("Guest Menu"));
+        assertTrue(fixture.io.output().contains("Goodbye"));
+        assertTrue(fixture.io.passwordBuffersAreCleared());
+    }
+
     private static Fixture fixture(String... input) {
         ArrayCustomerRepository repository = new ArrayCustomerRepository(10);
         repository.save(CustomerFactory.create(CustomerType.STANDARD, "C001", "Alice",
                 "alice", "secret1".toCharArray(), "A101", 100));
         SessionRegistry sessions = new SessionRegistry();
         ScriptedConsoleIO io = new ScriptedConsoleIO(input);
-        ConsoleController controller = new ConsoleController(io,
-                new AuthenticationService(repository, sessions),
-                new CustomerService(repository, sessions));
-        return new Fixture(repository, io, controller);
+        AuthenticationService authentication = new AuthenticationService(repository, sessions);
+        CustomerService customers = new CustomerService(repository, sessions);
+        ConsoleController controller = new ConsoleController(io, authentication, customers);
+        return new Fixture(repository, authentication, customers, io, controller);
     }
 
     private static int occurrences(String text, String value) {
         return (text.length() - text.replace(value, "").length()) / value.length();
     }
 
-    private record Fixture(ArrayCustomerRepository repository, ScriptedConsoleIO io,
+    private record Fixture(ArrayCustomerRepository repository,
+                           AuthenticationService authentication, CustomerService customers,
+                           ScriptedConsoleIO io,
                            ConsoleController controller) {
     }
 }

@@ -5,6 +5,8 @@ import com.example.account.customer.Customer;
 import com.example.account.domain.AccountStatus;
 import com.example.account.domain.CustomerType;
 import com.example.account.domain.UserRole;
+import com.example.account.exception.AuthenticationException;
+import com.example.account.exception.AuthorizationException;
 import com.example.account.security.UserSession;
 import com.example.account.service.AuthenticationService;
 import com.example.account.service.CustomerService;
@@ -43,6 +45,9 @@ public final class ConsoleController {
                 } catch (InputClosedException exception) {
                     io.println("Input closed. Goodbye.");
                     running = false;
+                } catch (AuthenticationException | AuthorizationException exception) {
+                    io.println("Error: " + safeMessage(exception));
+                    logoutSilently();
                 } catch (RuntimeException exception) {
                     io.println("Error: " + safeMessage(exception));
                 }
