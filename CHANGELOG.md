@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added an externally composed active-session registry shared by authentication and authorization services.
 - Added role-based customer services for administrator management operations and customer self-service account access.
 - Added flexible administrator customer search and Lambda/Stream audit filtering.
+- Added recoverable English guest, administrator, and customer console menus with a testable I/O boundary and masked-password system-terminal adapter.
 
 ### Changed
 
