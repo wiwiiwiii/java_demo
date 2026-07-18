@@ -1,40 +1,60 @@
 package com.example.account;
 
+import com.example.account.customer.Customer;
+import com.example.account.domain.AccountStatus;
+import com.example.account.domain.CustomerType;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AccountDemoTest {
     @Test
-    void createsFiveAccounts() {
+    void createsFiveCustomersAcrossEveryTierWithExpectedStatuses() {
+        Customer[] customers = AccountDemo.createCustomers();
+
+        assertEquals(5, customers.length);
+        for (Customer customer : customers) {
+            assertNotNull(customer);
+        }
+        assertEquals(Set.of(CustomerType.STANDARD, CustomerType.PREMIUM, CustomerType.CORPORATE),
+                Arrays.stream(customers).map(Customer::getType).collect(Collectors.toSet()));
+        assertArrayEquals(new AccountStatus[] {
+                AccountStatus.ACTIVE,
+                AccountStatus.INACTIVE,
+                AccountStatus.INACTIVE,
+                AccountStatus.ACTIVE,
+                AccountStatus.ACTIVE
+        }, Arrays.stream(customers)
+                .map(customer -> customer.getAccount().getStatus())
+                .toArray(AccountStatus[]::new));
+    }
+
+    @Test
+    void compatibilityAccountsAreTheFiveCustomerAccounts() {
+        Customer[] customers = AccountDemo.createCustomers();
         Account[] accounts = AccountDemo.createAccounts();
 
         assertEquals(5, accounts.length);
-        for (Account account : accounts) {
-            assertNotNull(account);
+        for (int index = 0; index < accounts.length; index++) {
+            assertNotNull(accounts[index]);
+            assertEquals(customers[index].getAccount().getId(), accounts[index].getId());
+            assertEquals(customers[index].getAccount().getStatus(), accounts[index].getStatus());
         }
     }
 
     @Test
-    void mainPrintsFiveAccountsWithStatuses() {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        PrintStream originalOut = System.out;
-        try {
-            System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8));
-            AccountDemo.main(new String[0]);
-        } finally {
-            System.setOut(originalOut);
+    void legacyTypesAndAccountStateAreNotDeclaredFinal() throws NoSuchFieldException {
+        assertFalse(Modifier.isFinal(AccountDemo.class.getModifiers()));
+        for (String fieldName : new String[] {"id", "owner", "balance", "statusPolicy"}) {
+            assertFalse(Modifier.isFinal(Account.class.getDeclaredField(fieldName).getModifiers()));
         }
-
-        String[] lines = output.toString(StandardCharsets.UTF_8).lines().toArray(String[]::new);
-        assertEquals(5, lines.length);
-        assertTrue(lines[0].contains("status='active'"));
-        assertTrue(lines[1].contains("status='inactive'"));
     }
 }

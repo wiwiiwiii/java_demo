@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added role-based customer services for administrator management operations and customer self-service account access.
 - Added flexible administrator customer search and Lambda/Stream audit filtering.
 - Added recoverable English guest, administrator, and customer console menus with a testable I/O boundary and masked-password system-terminal adapter.
+- Added a production composition root that seeds five customers in a capacity-100 repository and wires shared-session authentication, customer services, and console control.
+- Added an executable JAR manifest and end-user build, run, credential, terminal-masking, feature, and compliance documentation.
 
 ### Changed
 
@@ -26,3 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hardened role authorization with active-session provenance, logout invalidation, reserved administrator usernames, and temporary credential-buffer wiping.
 - Recover invalidated console sessions by returning safely to the guest menu without retry loops.
 - Removed internal planning documents from the deliverable.
+- Migrated the legacy five-account fixture to five valid Standard, Premium, and Corporate customers while retaining compatible account creation and the original status sequence.
+- Delegated the legacy `AccountDemo` entry point to the production application and replaced its invalid negative opening balance with zero.
+- Removed `final` from `AccountDemo` and from the `Account` ID, owner, balance, and status-policy fields as required by the classroom model.

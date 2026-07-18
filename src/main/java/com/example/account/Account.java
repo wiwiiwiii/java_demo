@@ -8,10 +8,10 @@ import com.example.account.policy.BalanceBasedAccountStatusPolicy;
 import java.util.Objects;
 
 public class Account {
-    private final String id;
-    private final String owner;
-    private final double balance;
-    private final AccountStatusPolicy statusPolicy;
+    private String id;
+    private String owner;
+    private double balance;
+    private AccountStatusPolicy statusPolicy;
 
     public Account(String id, String owner, double balance) {
         this(id, owner, balance, new BalanceBasedAccountStatusPolicy());
