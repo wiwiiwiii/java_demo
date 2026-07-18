@@ -21,14 +21,16 @@ class CustomerServiceTest {
     private CustomerService service;
     private UserSession admin;
     private UserSession aliceSession;
+    private AuthenticationService authenticationService;
 
     @BeforeEach
     void setUp() {
         repository = new ArrayCustomerRepository(5);
         repository.save(customer("C001", "alice", "A101"));
-        service = new CustomerService(repository);
-        admin = UserSession.admin("admin");
-        aliceSession = UserSession.customer("alice", "C001");
+        authenticationService = new AuthenticationService(repository);
+        service = new CustomerService(repository, authenticationService);
+        admin = authenticationService.login("admin", "Admin123".toCharArray());
+        aliceSession = authenticationService.login("alice", "secret1".toCharArray());
     }
 
     @Test
@@ -65,15 +67,47 @@ class CustomerServiceTest {
     }
 
     @Test
+    void fabricatedAdministratorAndCustomerSessionsAreRejected() {
+        assertThrows(AuthorizationException.class,
+                () -> service.listAll(UserSession.admin("admin")));
+        assertThrows(AuthorizationException.class,
+                () -> service.getOwnAccount(UserSession.customer("alice", "C001")));
+    }
+
+    @Test
+    void administratorCannotAddCustomerWithReservedUsername() {
+        assertThrows(ValidationException.class, () -> service.addCustomer(admin,
+                CustomerType.STANDARD, "C002", "Imposter", "AdMiN",
+                "secret2".toCharArray(), "A102", 10));
+        assertEquals(1, repository.size());
+    }
+
+    @Test
+    void deletingCustomerRevokesSessionsBeforeIdentityCanBeReused() {
+        service.deleteCustomer(admin, "C001");
+        service.addCustomer(admin, CustomerType.STANDARD, "C001", "New Alice", "alice",
+                "new-secret".toCharArray(), "A109", 10);
+
+        assertThrows(AuthorizationException.class,
+                () -> service.getOwnAccount(aliceSession));
+    }
+
+    @Test
+    void sessionsAreScopedToOneAuthenticationComposition() {
+        AuthenticationService otherAuthentication = new AuthenticationService(repository);
+        UserSession otherAdmin = otherAuthentication.login("admin", "Admin123".toCharArray());
+
+        assertThrows(AuthorizationException.class, () -> service.listAll(otherAdmin));
+        assertThrows(IllegalArgumentException.class, () -> new CustomerService(
+                new ArrayCustomerRepository(1), authenticationService));
+    }
+
+    @Test
     void missingAndInvalidSessionsAreRejected() {
         assertThrows(AuthorizationException.class, () -> service.listAll(null));
         assertThrows(AuthorizationException.class, () -> service.getOwnAccount(null));
         assertThrows(AuthorizationException.class, () -> service.getOwnAccount(admin));
         assertThrows(ValidationException.class, () -> UserSession.admin(" "));
-        assertThrows(ValidationException.class,
-                () -> new UserSession("alice", null, "C001"));
-        assertThrows(ValidationException.class,
-                () -> new UserSession("admin", com.example.account.domain.UserRole.ADMIN, "C001"));
     }
 
     @Test
@@ -82,8 +116,6 @@ class CustomerServiceTest {
 
         assertThrows(CustomerNotFoundException.class,
                 () -> service.getOwnAccount(aliceSession));
-        assertThrows(CustomerNotFoundException.class,
-                () -> service.getOwnAccount(UserSession.customer("missing", "C999")));
     }
 
     private static Customer customer(String id, String username, String account) {

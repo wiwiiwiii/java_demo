@@ -96,6 +96,39 @@ class AuthenticationServiceTest {
                 null, "C002", "Bob", "bob", "secret".toCharArray(), "A102", 10));
     }
 
+    @Test
+    void registrationRejectsReservedAdministratorUsernameCaseInsensitively() {
+        assertThrows(ValidationException.class, () -> service.register(
+                CustomerType.STANDARD, "C002", "Imposter", "ADMIN",
+                "secret".toCharArray(), "A102", 10));
+        assertEquals(1, repository.size());
+    }
+
+    @Test
+    void logoutInvalidatesIssuedSession() {
+        UserSession session = service.login("alice", "secret1".toCharArray());
+        CustomerService customerService = new CustomerService(repository, service);
+
+        service.logout(session);
+
+        assertThrows(com.example.account.exception.AuthorizationException.class,
+                () -> customerService.getOwnAccount(session));
+    }
+
+    @Test
+    void separatelyIssuedSessionsHaveDistinctTokensAndLogoutIsSelective() {
+        UserSession first = service.login("alice", "secret1".toCharArray());
+        UserSession second = service.login("alice", "secret1".toCharArray());
+        CustomerService customerService = new CustomerService(repository, service);
+
+        assertFalse(first.token().equals(second.token()));
+        service.logout(first);
+
+        assertThrows(com.example.account.exception.AuthorizationException.class,
+                () -> customerService.getOwnAccount(first));
+        assertEquals("A101", customerService.getOwnAccount(second).getId());
+    }
+
     private static Customer customer(String id, String username, String password, String account) {
         return CustomerFactory.create(CustomerType.STANDARD, id, username, username,
                 password.toCharArray(), account, 100);

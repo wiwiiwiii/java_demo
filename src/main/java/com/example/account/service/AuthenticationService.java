@@ -9,15 +9,18 @@ import com.example.account.exception.ValidationException;
 import com.example.account.repository.ArrayCustomerRepository;
 import com.example.account.security.UserSession;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public final class AuthenticationService {
     private static final String AUTHENTICATION_FAILURE = "Invalid username or password";
 
     private final ArrayCustomerRepository repository;
+    private final SessionRegistry sessions;
 
     public AuthenticationService(ArrayCustomerRepository repository) {
         this.repository = Objects.requireNonNull(repository, "repository");
+        this.sessions = new SessionRegistry();
     }
 
     public UserSession login(String username, char[] password) {
@@ -25,16 +28,16 @@ public final class AuthenticationService {
             throw authenticationFailure();
         }
         if ("admin".equals(username) && matchesAdminPassword(password)) {
-            return UserSession.admin(username);
+            return sessions.issueAdmin(username);
         }
 
         try {
             Customer customer = repository.findByUsername(username);
             if (customer.matchesPassword(password)) {
-                return UserSession.customer(customer.getUsername(), customer.getCustomerId());
+                return sessions.issueCustomer(customer.getUsername(), customer.getCustomerId());
             }
         } catch (CustomerNotFoundException ignored) {
-            // Authentication deliberately hides whether the username exists.
+            dummyPasswordComparison(password);
         }
         throw authenticationFailure();
     }
@@ -45,10 +48,23 @@ public final class AuthenticationService {
         if (type == null) {
             throw new ValidationException("Customer type must not be null");
         }
+        UsernamePolicy.requireNotReserved(username);
         Customer customer = CustomerFactory.create(type, customerId, name, username, password,
                 accountNumber, balance);
         repository.save(customer);
-        return UserSession.customer(customer.getUsername(), customer.getCustomerId());
+        return sessions.issueCustomer(customer.getUsername(), customer.getCustomerId());
+    }
+
+    public void logout(UserSession session) {
+        sessions.invalidate(session);
+    }
+
+    SessionRegistry sessions() {
+        return sessions;
+    }
+
+    ArrayCustomerRepository repository() {
+        return repository;
     }
 
     private static AuthenticationException authenticationFailure() {
@@ -69,6 +85,23 @@ public final class AuthenticationService {
 
     private static boolean matchesAdminPassword(char[] candidate) {
         char[] expected = {'A', 'd', 'm', 'i', 'n', '1', '2', '3'};
+        try {
+            return constantTimeMatches(expected, candidate);
+        } finally {
+            Arrays.fill(expected, '\0');
+        }
+    }
+
+    private static void dummyPasswordComparison(char[] candidate) {
+        char[] dummy = {'N', 'o', 't', 'A', 'P', 'a', 's', 's'};
+        try {
+            constantTimeMatches(dummy, candidate);
+        } finally {
+            Arrays.fill(dummy, '\0');
+        }
+    }
+
+    private static boolean constantTimeMatches(char[] expected, char[] candidate) {
         int difference = expected.length ^ candidate.length;
         int comparisonLength = Math.max(expected.length, candidate.length);
         for (int index = 0; index < comparisonLength; index++) {

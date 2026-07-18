@@ -20,4 +20,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Updated `Account` to permit inheritance and to validate account numbers, owners, and finite nonnegative balances.
 - Updated account status reporting to use enum values instead of hard-coded strings.
 - Excluded customer passwords from public APIs and string representations.
+- Hardened role authorization with active-session provenance, logout invalidation, reserved administrator usernames, and temporary credential-buffer wiping.
 - Removed internal planning documents from the deliverable.

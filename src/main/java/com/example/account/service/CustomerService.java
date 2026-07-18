@@ -13,9 +13,17 @@ import java.util.Objects;
 
 public final class CustomerService {
     private final ArrayCustomerRepository repository;
+    private final SessionRegistry sessions;
 
-    public CustomerService(ArrayCustomerRepository repository) {
+    public CustomerService(ArrayCustomerRepository repository,
+                           AuthenticationService authenticationService) {
         this.repository = Objects.requireNonNull(repository, "repository");
+        AuthenticationService authentication = Objects.requireNonNull(
+                authenticationService, "authenticationService");
+        if (authentication.repository() != repository) {
+            throw new IllegalArgumentException("Services must share the same repository");
+        }
+        this.sessions = authentication.sessions();
     }
 
     public Customer[] listAll(UserSession session) {
@@ -27,6 +35,7 @@ public final class CustomerService {
                                 String name, String username, char[] password,
                                 String accountNumber, double balance) {
         requireAdmin(session);
+        UsernamePolicy.requireNotReserved(username);
         Customer customer = CustomerFactory.create(type, customerId, name, username, password,
                 accountNumber, balance);
         repository.save(customer);
@@ -36,10 +45,11 @@ public final class CustomerService {
     public void deleteCustomer(UserSession session, String customerId) {
         requireAdmin(session);
         repository.deleteByCustomerId(customerId);
+        sessions.invalidateCustomer(customerId);
     }
 
     public Account getOwnAccount(UserSession session) {
-        if (session == null || session.role() != UserRole.CUSTOMER) {
+        if (!sessions.isActive(session) || session.role() != UserRole.CUSTOMER) {
             throw new AuthorizationException("Customer access required");
         }
         Customer customer = repository.findByCustomerId(session.customerId());
@@ -49,8 +59,8 @@ public final class CustomerService {
         return customer.getAccount();
     }
 
-    private static void requireAdmin(UserSession session) {
-        if (session == null || session.role() != UserRole.ADMIN) {
+    private void requireAdmin(UserSession session) {
+        if (!sessions.isActive(session) || session.role() != UserRole.ADMIN) {
             throw new AuthorizationException("Administrator access required");
         }
     }
