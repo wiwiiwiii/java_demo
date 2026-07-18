@@ -22,13 +22,15 @@ class CustomerServiceTest {
     private UserSession admin;
     private UserSession aliceSession;
     private AuthenticationService authenticationService;
+    private SessionRegistry sessions;
 
     @BeforeEach
     void setUp() {
         repository = new ArrayCustomerRepository(5);
         repository.save(customer("C001", "alice", "A101"));
-        authenticationService = new AuthenticationService(repository);
-        service = new CustomerService(repository, authenticationService);
+        sessions = new SessionRegistry();
+        authenticationService = new AuthenticationService(repository, sessions);
+        service = new CustomerService(repository, sessions);
         admin = authenticationService.login("admin", "Admin123".toCharArray());
         aliceSession = authenticationService.login("alice", "secret1".toCharArray());
     }
@@ -94,12 +96,11 @@ class CustomerServiceTest {
 
     @Test
     void sessionsAreScopedToOneAuthenticationComposition() {
-        AuthenticationService otherAuthentication = new AuthenticationService(repository);
+        AuthenticationService otherAuthentication = new AuthenticationService(
+                repository, new SessionRegistry());
         UserSession otherAdmin = otherAuthentication.login("admin", "Admin123".toCharArray());
 
         assertThrows(AuthorizationException.class, () -> service.listAll(otherAdmin));
-        assertThrows(IllegalArgumentException.class, () -> new CustomerService(
-                new ArrayCustomerRepository(1), authenticationService));
     }
 
     @Test

@@ -18,17 +18,20 @@ public final class AuthenticationService {
     private final ArrayCustomerRepository repository;
     private final SessionRegistry sessions;
 
-    public AuthenticationService(ArrayCustomerRepository repository) {
+    public AuthenticationService(ArrayCustomerRepository repository, SessionRegistry sessions) {
         this.repository = Objects.requireNonNull(repository, "repository");
-        this.sessions = new SessionRegistry();
+        this.sessions = Objects.requireNonNull(sessions, "sessions");
     }
 
     public UserSession login(String username, char[] password) {
         if (username == null || username.isBlank() || password == null || isBlank(password)) {
             throw authenticationFailure();
         }
-        if ("admin".equals(username) && matchesAdminPassword(password)) {
-            return sessions.issueAdmin(username);
+        if ("admin".equalsIgnoreCase(username)) {
+            if (matchesAdminPassword(password)) {
+                return sessions.issueAdmin(username);
+            }
+            throw authenticationFailure();
         }
 
         try {
@@ -57,14 +60,6 @@ public final class AuthenticationService {
 
     public void logout(UserSession session) {
         sessions.invalidate(session);
-    }
-
-    SessionRegistry sessions() {
-        return sessions;
-    }
-
-    ArrayCustomerRepository repository() {
-        return repository;
     }
 
     private static AuthenticationException authenticationFailure() {

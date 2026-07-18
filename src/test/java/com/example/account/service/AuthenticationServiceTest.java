@@ -21,12 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AuthenticationServiceTest {
     private ArrayCustomerRepository repository;
     private AuthenticationService service;
+    private SessionRegistry sessions;
 
     @BeforeEach
     void setUp() {
         repository = new ArrayCustomerRepository(5);
         repository.save(customer("C001", "alice", "secret1", "A101"));
-        service = new AuthenticationService(repository);
+        sessions = new SessionRegistry();
+        service = new AuthenticationService(repository, sessions);
     }
 
     @Test
@@ -56,6 +58,19 @@ class AuthenticationServiceTest {
 
         assertEquals("Invalid username or password", wrongUsername.getMessage());
         assertEquals(wrongUsername.getMessage(), wrongPassword.getMessage());
+    }
+
+    @Test
+    void reservedAdministratorUsernameNeverFallsThroughToCustomerCredentials() {
+        ArrayCustomerRepository seededRepository = new ArrayCustomerRepository(1);
+        seededRepository.save(customer("C009", "admin", "customer-secret", "A109"));
+        AuthenticationService seededService = new AuthenticationService(
+                seededRepository, new SessionRegistry());
+
+        AuthenticationException failure = assertThrows(AuthenticationException.class,
+                () -> seededService.login("admin", "customer-secret".toCharArray()));
+
+        assertEquals("Invalid username or password", failure.getMessage());
     }
 
     @Test
@@ -107,7 +122,7 @@ class AuthenticationServiceTest {
     @Test
     void logoutInvalidatesIssuedSession() {
         UserSession session = service.login("alice", "secret1".toCharArray());
-        CustomerService customerService = new CustomerService(repository, service);
+        CustomerService customerService = new CustomerService(repository, sessions);
 
         service.logout(session);
 
@@ -119,7 +134,7 @@ class AuthenticationServiceTest {
     void separatelyIssuedSessionsHaveDistinctTokensAndLogoutIsSelective() {
         UserSession first = service.login("alice", "secret1".toCharArray());
         UserSession second = service.login("alice", "secret1".toCharArray());
-        CustomerService customerService = new CustomerService(repository, service);
+        CustomerService customerService = new CustomerService(repository, sessions);
 
         assertFalse(first.token().equals(second.token()));
         service.logout(first);

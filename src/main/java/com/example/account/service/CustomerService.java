@@ -15,15 +15,9 @@ public final class CustomerService {
     private final ArrayCustomerRepository repository;
     private final SessionRegistry sessions;
 
-    public CustomerService(ArrayCustomerRepository repository,
-                           AuthenticationService authenticationService) {
+    public CustomerService(ArrayCustomerRepository repository, SessionRegistry sessions) {
         this.repository = Objects.requireNonNull(repository, "repository");
-        AuthenticationService authentication = Objects.requireNonNull(
-                authenticationService, "authenticationService");
-        if (authentication.repository() != repository) {
-            throw new IllegalArgumentException("Services must share the same repository");
-        }
-        this.sessions = authentication.sessions();
+        this.sessions = Objects.requireNonNull(sessions, "sessions");
     }
 
     public Customer[] listAll(UserSession session) {

@@ -12,7 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added Standard, Premium, and Corporate customer types through an abstract `Customer` hierarchy and switch-based factory.
 - Added customer and user-role enums, constructor validation, defensive password storage, and constant-time password matching.
 - Added a fixed-capacity array-backed customer repository with unique customer ID, username, and account-number enforcement, defensive reads, and compacting deletes.
-- Added stateless administrator and customer authentication with immutable user sessions and indistinguishable credential failures.
+- Added stateless administrator and customer credential verification with immutable user sessions and indistinguishable credential failures.
+- Added an externally composed active-session registry shared by authentication and authorization services.
 - Added role-based customer services for administrator management operations and customer self-service account access.
 
 ### Changed

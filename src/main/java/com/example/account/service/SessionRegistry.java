@@ -4,9 +4,12 @@ import com.example.account.security.UserSession;
 
 import java.util.Arrays;
 
-final class SessionRegistry {
+public final class SessionRegistry {
     private UserSession[] sessions = new UserSession[8];
     private int size;
+
+    public SessionRegistry() {
+    }
 
     UserSession issueAdmin(String username) {
         return register(UserSession.admin(username));
