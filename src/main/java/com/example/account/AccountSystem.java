@@ -146,6 +146,9 @@ public class AccountSystem {
         if (candidate == null) {
             throw new AccountException("Customer is required");
         }
+        if (ADMIN_USERNAME.equalsIgnoreCase(candidate.getUsername())) {
+            throw new AccountException("Username admin is reserved");
+        }
         for (int i = 0; i < customerCount; i++) {
             Customer existing = customers[i];
             if (existing.getCustomerId().equals(candidate.getCustomerId())) {

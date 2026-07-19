@@ -85,6 +85,14 @@ class AccountSystemTest {
     }
 
     @Test
+    void administratorUsernameIsReserved() {
+        AccountSystem system = new AccountSystem();
+
+        assertThrows(AccountException.class, () -> system.registerCustomer(
+                customer("C900", "New", "admin", "A900", 1)));
+    }
+
+    @Test
     void administratorCanAddSearchFilterAndDelete() {
         AccountSystem system = adminSystem();
         Customer customer = customer("C006", "Faye", "faye", "A006", 20_000);

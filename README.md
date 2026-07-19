@@ -1,14 +1,36 @@
-# Account Array Demo
+# Customer Account Management System
 
-A Java 17 classroom account-management application with an array-backed customer repository,
-role-based authentication, customer search and filtering, and an interactive English console.
-Data exists in memory for the life of the process; the application does not use a database or
-file persistence.
+A simple Java 17 classroom project for managing customer accounts. The program uses an English command-line menu, stores customers in a fixed array, and keeps all data in memory until the program exits.
 
-## Prerequisites and commands
+This version is intentionally simple: every production class is in one package, method names describe the business action directly, and each audit requirement has one obvious code example.
+
+## Project Structure
+
+All production files are in `src/main/java/com/example/account/`.
+
+| Class | Responsibility |
+| --- | --- |
+| `Main` | Starts the program and displays the English menus |
+| `AccountSystem` | Stores customers and handles login, registration, add, delete, search, and filter operations |
+| `Account` | Stores an account number and balance and returns its status |
+| `AccountStatus` | Defines `ACTIVE` and `INACTIVE` |
+| `AccountStatusRule` | Interface for deciding account status |
+| `BalanceStatusRule` | Current rule: positive balance is active |
+| `Customer` | Abstract parent class for shared customer information |
+| `StandardCustomer` | Standard customer subclass |
+| `PremiumCustomer` | Premium customer subclass |
+| `CorporateCustomer` | Corporate customer subclass |
+| `CustomerType` | Defines the three customer types |
+| `AccountException` | One exception type for input and business errors |
+
+The three focused test classes are `AccountTest`, `CustomerTest`, and `AccountSystemTest`.
+
+## Run The Project
+
+Requirements:
 
 - Java 17 or later
-- Apache Maven 3.8 or later
+- Maven 3.8 or later
 
 ```bash
 mvn test
@@ -16,31 +38,75 @@ mvn package
 java -jar target/account-array-demo-1.0-SNAPSHOT.jar
 ```
 
-The demonstration administrator credentials are `admin` / `Admin123`. They are intentionally
-public classroom credentials and must not be reused in a real system. A real system terminal
-masks password input. An IDE console often cannot mask it, so the application prints a warning
-and uses visible fallback input there.
+A real system terminal masks password input with `Console.readPassword()`. An IDE console may not support masking, so the program displays a warning before using visible fallback input.
+
+## Demo Login
+
+- Administrator username: `admin`
+- Administrator password: `Admin123`
+- Seeded customer password: `Password1`
+
+These are public classroom credentials and must not be reused in a real system.
 
 ## Features
 
-- Guest registration and administrator/customer login
-- Administrator list, search, filter, add, and confirmed-delete operations
-- Customer read-only access to their own account
-- Five seeded customers spanning Standard, Premium, and Corporate tiers
-- Active/inactive account status derived from a balance policy
-- Fixed-capacity, in-memory array repository with duplicate protection
+Guest users can:
 
-## Compliance mapping
+- Log in
+- Register a customer account
+- Exit
 
-1. **Classes and objects:** accounts, customers, sessions, services, and the application
-   composition root have focused responsibilities.
-2. **Encapsulation:** account state is private, credentials are defensively copied, and passwords
-   are omitted from public string representations.
-3. **Inheritance and polymorphism:** Standard, Premium, and Corporate customers share the abstract
-   `Customer` contract while supplying their tier-specific type.
-4. **Interfaces and abstraction:** `AccountStatusPolicy` isolates status rules and `ConsoleIO`
-   isolates terminal input/output for production and tests.
-5. **Arrays and exceptions:** `ArrayCustomerRepository` provides bounded array storage and reports
-   validation, duplicate, capacity, lookup, authentication, and authorization failures explicitly.
-6. **Enums, lambdas, and streams:** uppercase enums model roles, tiers, and statuses; predicates and
-   stream operations support filtering, searching, and fixture compatibility.
+Administrators can:
+
+- List all customers
+- Search by customer ID, name, username, or account number
+- Filter by customer type, account status, or minimum balance
+- Add a customer
+- Delete a customer
+- Log out or exit
+
+Customers can view their own account and log out or exit. The system starts with five customers and stores up to twenty customers in one `Customer[]` array.
+
+## Six Audit Requirements
+
+### 1. Enum
+
+`AccountStatus` replaces hard-coded status strings with `ACTIVE` and `INACTIVE`. `CustomerType` similarly defines `STANDARD`, `PREMIUM`, and `CORPORATE`.
+
+### 2. Interface
+
+`AccountStatusRule` contains the status business rule contract. `BalanceStatusRule` implements the current rule, and `Account` receives the rule through its constructor.
+
+### 3. Inheritance
+
+`Customer` is the abstract parent. `StandardCustomer`, `PremiumCustomer`, and `CorporateCustomer` inherit its common fields and methods and return their own `CustomerType`.
+
+### 4. Exception Handling
+
+All validation, login, permission, duplicate, capacity, and lookup errors use `AccountException`. `Main.run()` catches errors, prints an English message, and keeps the program running.
+
+### 5. Lambda Expression
+
+`AccountSystem.filterCustomers(Predicate<Customer>)` accepts flexible Lambda expressions. `Main.filterCustomers()` shows clear examples for type, status, and balance filters.
+
+### 6. Unit Testing
+
+- `AccountTest` covers Enum status, the interface rule, balance boundaries, and invalid accounts.
+- `CustomerTest` covers the three inherited customer types, validation, and password behavior.
+- `AccountSystemTest` covers five seeded customers, login/logout, registration, permissions, array operations, search, and Lambda filters.
+
+Run all tests with `mvn test`.
+
+## Suggested Demo Order
+
+1. Run `mvn test` to show automated verification.
+2. Open `AccountStatus` to explain Enum values.
+3. Open `AccountStatusRule` and `BalanceStatusRule` to explain the interface.
+4. Open `Customer` and its three subclasses to explain inheritance.
+5. Open `AccountException` and the catch block in `Main.run()`.
+6. Open `AccountSystem.filterCustomers()` and the Lambda examples in `Main`.
+7. Run the JAR, log in as administrator, then demonstrate list, search, filter, add, and delete.
+
+## Classroom Scope
+
+This project is designed for explaining Java concepts, not for production banking. Data is not persisted, passwords are not hashed, authentication uses simple in-memory state, and there is no database, network API, Spring Boot, or graphical interface.

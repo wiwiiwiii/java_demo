@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Simplified the project into one package with direct class and method names for classroom explanation.
+- Replaced repository, service, session, and console abstraction layers with `AccountSystem` and `Main`.
+- Replaced specialized exceptions with one `AccountException` and reduced the suite to three focused test classes.
+- Rewrote the README to map the six audit requirements directly to the simplified code.
 - Replaced the layered console framework with one direct `Main` class and plainly named English menu methods.
 - Flattened the account and customer classroom model into the root package with simple rules and constructors.
 - Updated `Account` to permit inheritance and to validate account numbers, owners, and finite nonnegative balances.

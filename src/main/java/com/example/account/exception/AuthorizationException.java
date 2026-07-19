@@ -1,7 +1,0 @@
-package com.example.account.exception;
-
-public class AuthorizationException extends RuntimeException {
-    public AuthorizationException(String message) {
-        super(message);
-    }
-}
