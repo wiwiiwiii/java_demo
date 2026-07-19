@@ -1,40 +1,57 @@
 package com.example.account;
 
-import com.example.account.domain.AccountStatus;
-import com.example.account.exception.ValidationException;
-import com.example.account.policy.AccountStatusPolicy;
-import com.example.account.policy.BalanceBasedAccountStatusPolicy;
-
-import java.util.Objects;
-
 public class Account {
+    private final String accountNumber;
     private String id;
-    private String owner;
     private double balance;
-    private AccountStatusPolicy statusPolicy;
+    private AccountStatusRule statusRule;
+    private Object statusPolicy;
+    private String owner;
 
-    public Account(String id, String owner, double balance) {
-        this(id, owner, balance, new BalanceBasedAccountStatusPolicy());
+    public Account(String accountNumber, double balance) {
+        this(accountNumber, balance, new BalanceStatusRule());
     }
 
-    public Account(String id, String owner, double balance, AccountStatusPolicy statusPolicy) {
-        if (id == null || !id.matches("A\\d{3,}")) {
-            throw new ValidationException("Account number must be A followed by at least three digits");
-        }
-        if (owner == null || owner.isBlank()) {
-            throw new ValidationException("Owner must not be blank");
+    public Account(String accountNumber, double balance, AccountStatusRule statusRule) {
+        this(accountNumber, balance, statusRule, null);
+    }
+
+    public Account(String accountNumber, String owner, double balance) {
+        this(accountNumber, balance, new BalanceStatusRule(), requireOwner(owner));
+    }
+
+    public Account(String accountNumber, String owner, double balance,
+                   com.example.account.policy.AccountStatusPolicy statusPolicy) {
+        this(accountNumber, balance,
+                value -> statusPolicy.determineStatus(value) == com.example.account.domain.AccountStatus.ACTIVE
+                        ? AccountStatus.ACTIVE : AccountStatus.INACTIVE,
+                requireOwner(owner));
+    }
+
+    private Account(String accountNumber, double balance, AccountStatusRule statusRule, String owner) {
+        if (accountNumber == null || !accountNumber.matches("A\\d{3,}")) {
+            throw new AccountException("Account number must be A followed by at least three digits");
         }
         if (!Double.isFinite(balance) || balance < 0) {
-            throw new ValidationException("Balance must be finite and nonnegative");
+            throw new AccountException("Balance must be finite and nonnegative");
         }
-        this.id = id;
-        this.owner = owner;
+        this.accountNumber = accountNumber;
+        this.id = accountNumber;
         this.balance = balance;
-        this.statusPolicy = Objects.requireNonNull(statusPolicy, "statusPolicy");
+        if (statusRule == null) {
+            throw new AccountException("Status rule must not be null");
+        }
+        this.statusRule = statusRule;
+        this.statusPolicy = statusRule;
+        this.owner = owner;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
     }
 
     public String getId() {
-        return id;
+        return accountNumber;
     }
 
     public String getOwner() {
@@ -46,12 +63,19 @@ public class Account {
     }
 
     public AccountStatus getStatus() {
-        return statusPolicy.determineStatus(balance);
+        return statusRule.getStatus(balance);
     }
 
     @Override
     public String toString() {
-        return "Account{id='" + id + "', owner='" + owner
-                + "', balance=" + balance + ", status='" + getStatus() + "'}";
+        return "Account{accountNumber='" + accountNumber + "', balance=" + balance
+                + ", status=" + statusRule.getStatus(balance) + "}";
+    }
+
+    private static String requireOwner(String owner) {
+        if (owner == null || owner.isBlank()) {
+            throw new AccountException("Owner must not be blank");
+        }
+        return owner;
     }
 }

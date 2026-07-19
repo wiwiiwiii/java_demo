@@ -2,7 +2,7 @@ package com.example.account.console;
 
 import com.example.account.Account;
 import com.example.account.customer.Customer;
-import com.example.account.domain.AccountStatus;
+import com.example.account.AccountStatus;
 import com.example.account.domain.CustomerType;
 import com.example.account.domain.UserRole;
 import com.example.account.exception.AuthenticationException;
