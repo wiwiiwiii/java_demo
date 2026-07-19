@@ -9,6 +9,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AccountSystemTest {
     @Test
+    void mainClassProvidesExecutableEntryPoint() throws Exception {
+        assertNotNull(Class.forName("com.example.account.Main")
+                .getMethod("main", String[].class));
+    }
+
+    @Test
     void startsWithFiveCustomersAndSupportsSimpleLogin() {
         AccountSystem system = new AccountSystem();
         assertEquals(5, system.getAllCustomers().length);
