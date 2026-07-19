@@ -20,6 +20,17 @@ class AccountSystemTest {
     }
 
     @Test
+    void seededCustomersIncludeEveryCustomerType() {
+        CustomerType[] types = java.util.Arrays.stream(new AccountSystem().getAllCustomers())
+                .map(Customer::getType)
+                .distinct()
+                .sorted()
+                .toArray(CustomerType[]::new);
+
+        assertArrayEquals(CustomerType.values(), types);
+    }
+
+    @Test
     void customerCanLoginAndLogout() {
         AccountSystem system = new AccountSystem();
         Customer customer = system.getAllCustomers()[0];
@@ -80,6 +91,27 @@ class AccountSystemTest {
         assertEquals(1, system.filterCustomers(c -> c.getAccount().getBalance() >= 20_000).length);
         system.deleteCustomer("C006");
         assertEquals(5, system.getAllCustomers().length);
+    }
+
+    @Test
+    void deletingMiddleCustomerCompactsArrayAndPreservesOrder() {
+        AccountSystem system = adminSystem();
+        Customer[] before = system.getAllCustomers();
+
+        system.deleteCustomer(before[2].getCustomerId());
+
+        Customer[] after = system.getAllCustomers();
+        assertEquals(4, after.length);
+        assertArrayEquals(
+                new Customer[]{before[0], before[1], before[3], before[4]},
+                after);
+    }
+
+    @Test
+    void deletingMissingCustomerThrowsAccountException() {
+        AccountSystem system = adminSystem();
+
+        assertThrows(AccountException.class, () -> system.deleteCustomer("C999"));
     }
 
     @Test
