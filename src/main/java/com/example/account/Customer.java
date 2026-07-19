@@ -41,7 +41,17 @@ public abstract class Customer {
     }
 
     public boolean matchesPassword(char[] candidate) {
-        return candidate != null && Arrays.equals(password, candidate);
+        if (candidate == null) {
+            return false;
+        }
+        int difference = password.length ^ candidate.length;
+        int comparisonLength = Math.max(password.length, candidate.length);
+        for (int index = 0; index < comparisonLength; index++) {
+            char expected = index < password.length ? password[index] : 0;
+            char actual = index < candidate.length ? candidate[index] : 0;
+            difference |= expected ^ actual;
+        }
+        return difference == 0;
     }
 
     public abstract CustomerType getType();

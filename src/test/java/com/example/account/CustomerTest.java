@@ -43,6 +43,7 @@ class CustomerTest {
 
         assertTrue(customer.matchesPassword("secret".toCharArray()));
         assertFalse(customer.matchesPassword("Secret".toCharArray()));
+        assertFalse(customer.matchesPassword("secret-longer".toCharArray()));
         assertFalse(customer.matchesPassword(null));
         assertFalse(customer.toString().contains("secret"));
     }

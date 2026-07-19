@@ -22,10 +22,7 @@ public class Account {
 
     public Account(String accountNumber, String owner, double balance,
                    com.example.account.policy.AccountStatusPolicy statusPolicy) {
-        this(accountNumber, balance,
-                value -> statusPolicy.determineStatus(value) == com.example.account.domain.AccountStatus.ACTIVE
-                        ? AccountStatus.ACTIVE : AccountStatus.INACTIVE,
-                requireOwner(owner));
+        this(accountNumber, balance, adaptLegacyPolicy(statusPolicy), requireOwner(owner));
     }
 
     private Account(String accountNumber, double balance, AccountStatusRule statusRule, String owner) {
@@ -77,5 +74,15 @@ public class Account {
             throw new AccountException("Owner must not be blank");
         }
         return owner;
+    }
+
+    private static AccountStatusRule adaptLegacyPolicy(
+            com.example.account.policy.AccountStatusPolicy statusPolicy) {
+        if (statusPolicy == null) {
+            throw new AccountException("Status policy must not be null");
+        }
+        return balance -> statusPolicy.determineStatus(balance)
+                == com.example.account.domain.AccountStatus.ACTIVE
+                ? AccountStatus.ACTIVE : AccountStatus.INACTIVE;
     }
 }

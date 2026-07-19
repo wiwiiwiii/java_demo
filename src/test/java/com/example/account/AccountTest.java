@@ -42,4 +42,11 @@ class AccountTest {
         assertThrows(AccountException.class, () -> new Account("A123", Double.POSITIVE_INFINITY));
         assertThrows(AccountException.class, () -> new Account("A123", 1.0, null));
     }
+
+    @Test
+    void legacyConstructorRejectsNullPolicyImmediately() {
+        assertThrows(AccountException.class,
+                () -> new Account("A123", "Alice", 1.0,
+                        (com.example.account.policy.AccountStatusPolicy) null));
+    }
 }
