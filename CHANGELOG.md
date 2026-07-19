@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Added a direct, fixed-array `AccountSystem` classroom API for registration, login/logout,
+  administrator CRUD/search, and Lambda-based customer filtering.
 - Added the `AccountStatus` enum and an injectable `AccountStatusPolicy` with a balance-based implementation.
 - Added Standard, Premium, and Corporate customer types through an abstract `Customer` hierarchy and switch-based factory.
 - Added customer and user-role enums, constructor validation, defensive password storage, and constant-time password matching.
