@@ -1,35 +1,45 @@
 package com.example.account;
 
-public final class Account {
-    private final String id;
-    private final String owner;
-    private final double balance;
+public class Account {
+    private final String accountNumber;
+    private double balance;
+    private AccountStatusRule statusRule;
 
-    public Account(String id, String owner, double balance) {
-        this.id = id;
-        this.owner = owner;
+    public Account(String accountNumber, double balance) {
+        this(accountNumber, balance, new BalanceStatusRule());
+    }
+
+    public Account(String accountNumber, double balance, AccountStatusRule statusRule) {
+        if (accountNumber == null || !accountNumber.matches("A\\d{3,}")) {
+            throw new AccountException("Account number must be A followed by at least three digits");
+        }
+        if (!Double.isFinite(balance) || balance < 0) {
+            throw new AccountException("Balance must be finite and nonnegative");
+        }
+        this.accountNumber = accountNumber;
         this.balance = balance;
+        if (statusRule == null) {
+            throw new AccountException("Status rule must not be null");
+        }
+        this.statusRule = statusRule;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getOwner() {
-        return owner;
+    public String getAccountNumber() {
+        return accountNumber;
     }
 
     public double getBalance() {
         return balance;
     }
 
-    public String getStatus() {
-        return balance > 0 ? "active" : "inactive";
+    public AccountStatus getStatus() {
+        return statusRule.getStatus(balance);
     }
 
     @Override
     public String toString() {
-        return "Account{id='" + id + "', owner='" + owner
-                + "', balance=" + balance + ", status='" + getStatus() + "'}";
+        return "Account{accountNumber='" + accountNumber + "', balance=" + balance
+                + ", status=" + statusRule.getStatus(balance) + "}";
     }
+
 }
